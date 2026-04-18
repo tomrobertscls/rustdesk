@@ -446,7 +446,7 @@ jobs:
           - {
               arch: x86_64,
               target: x86_64-unknown-linux-gnu,
-              distro: ubuntu22.04,
+              distro: ubuntu18.04,
               on: ubuntu-22.04,
               deb_arch: amd64,
               vcpkg-triplet: x64-linux,
@@ -570,14 +570,20 @@ jobs:
             --volume "/opt/artifacts:/opt/artifacts"
           shell: /bin/bash
           install: |
-            # Retry apt-get update to handle flaky Ubuntu 18.04 bionic mirrors
+            # Switch to Azure mirror (archive.ubuntu.com has been unreliable)
+            sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+            sed -i 's|http://security.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+            for f in /etc/apt/sources.list.d/*.sources; do
+              [ -f "$f" ] && sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g; s|http://security.ubuntu.com|http://azure.archive.ubuntu.com|g' "$f"
+            done
+            # Retry apt-get update to handle flaky mirrors
             for i in 1 2 3 4 5; do
               apt-get update -y && break
               echo "apt-get update failed, retrying ($i/5)..."
               sleep $((i*5))
             done
             echo -e "installing deps"
-            # Install with retries + fix-missing for bionic mirror flakiness
+            # Install with retries + fix-missing for mirror flakiness
             for i in 1 2 3; do
               apt-get install -y \
                  -o Acquire::Retries=5 \
@@ -866,13 +872,19 @@ jobs:
             --volume "${PWD}:/workspace"
           shell: /bin/bash
           install: |
-            # Retry apt-get update to handle flaky Ubuntu 18.04 bionic mirrors
+            # Switch to Azure mirror (archive.ubuntu.com has been unreliable)
+            sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+            sed -i 's|http://security.ubuntu.com|http://azure.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+            for f in /etc/apt/sources.list.d/*.sources; do
+              [ -f "$f" ] && sed -i 's|http://archive.ubuntu.com|http://azure.archive.ubuntu.com|g; s|http://security.ubuntu.com|http://azure.archive.ubuntu.com|g' "$f"
+            done
+            # Retry apt-get update to handle flaky mirrors
             for i in 1 2 3 4 5; do
               apt-get update -y && break
               echo "apt-get update failed, retrying ($i/5)..."
               sleep $((i*5))
             done
-            # Install with retries + fix-missing for bionic mirror flakiness
+            # Install with retries + fix-missing for mirror flakiness
             for i in 1 2 3; do
               apt-get install -y \
                  -o Acquire::Retries=5 \
